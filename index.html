@@ -51,6 +51,7 @@
                 alimentoDiv.innerHTML = `
                     <div class="alimento-img-container">
                         <img class="alimento-img" src="${alimento.img}" alt="${alimento.name}">
+                        <button class="change-img-btn" onclick="changeImage('${doc.id}')">Alterar Imagem</button>
                     </div>
                     <h2>${alimento.name}</h2>
                     <p>Calorias: ${alimento.caloria}</p>
@@ -113,20 +114,57 @@
         function deleteAlimento(id) {
             db.collection("alimentos").doc(id).delete();
         }
+        function changeImage(id) {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = function(event) {
+                var file = event.target.files[0];
+                if (file) {
+                var storageRef = firebase.storage().ref('imagens/' + file.name);
+                var uploadTask = storageRef.put(file);
+
+                uploadTask.on(
+                    'state_changed',
+                    function(snapshot) {
+                    // Monitora o progresso do upload, se necessário
+                    },
+                    function(error) {
+                    // Trata qualquer erro que ocorra durante o upload
+                    console.error('Erro ao fazer upload:', error);
+                    },
+                    function() {
+                    // Depois que o upload for concluído, obtém a URL de download
+                    uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+                        var alimento = db.collection("alimentos").doc(id);
+                        alimento.update({ img: downloadURL })
+                        .then(function() {
+                            console.log("Imagem do alimento atualizada!");
+                            alert("Imagem do alimento atualizada com sucesso!");
+                        })
+                        .catch(function(error) {
+                            console.error("Erro ao atualizar imagem:", error);
+                            alert("Erro ao atualizar imagem!");
+                        });
+                    });
+                    }
+                );
+                }
+            };
+            input.click();
+            }
 
         function editAlimento(id) {
         var alimento = db.collection("alimentos").doc(id);
         var newName = prompt("Novo nome");
         var newCaloria = prompt("Nova caloria");
         var newDescricao = prompt("Nova descrição");
-        var newImg = prompt("Nova imagem URL");
 
-        if (newName && newCaloria && newDescricao && newImg) {
+        if (newName && newCaloria && newDescricao) {
             alimento.update({
                 name: newName,
                 caloria: newCaloria,
                 descricao: newDescricao,
-                img: newImg
             });
         } else {
             alert('Preencha todos os campos para editar o alimento.');
@@ -144,13 +182,18 @@
                     if (alimento.name.toLowerCase().includes(searchTerm)) {
                         var alimentoDiv = document.createElement('div');
                         alimentoDiv.innerHTML = `
+                            <div class="alimento-img-container">
+                                <img class="alimento-img" src="${alimento.img}" alt="${alimento.name}">
+                                <button class="change-img-btn" onclick="changeImage('${doc.id}')">Alterar Imagem</button>
+                            </div>
                             <h2>${alimento.name}</h2>
                             <p>Calorias: ${alimento.caloria}</p>
                             <p>Descrição: ${alimento.descricao}</p>
-                            <img src="${alimento.img}" alt="${alimento.name}">
-                            <button class="delete-btn" onclick="confirmDelete('${doc.id}', '${alimento.name}')">Excluir</button>
-                            <button class="edit-btn" onclick="editAlimento('${doc.id}')">Editar</button>
-                        `;
+                            <div class="button-container">
+                                <button class="delete-btn" onclick="confirmDelete('${doc.id}', '${alimento.name}')">Excluir</button>
+                                <button class="edit-btn" onclick="editAlimento('${doc.id}')">Editar</button>
+                            </div>
+                            `;
                         alimentosDiv.appendChild(alimentoDiv);
                     }
                 });
