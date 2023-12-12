@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-storage.js"></script>
+
+    <link rel="stylesheet" href="index.css">
+
+</head>
+<body>
+    <h1 style="display: flex; justify-content: center; color: #235f26;">Gerenciamento Banco de Dados EATWELL</h1>
+    <div class="adicionaralimento">
+        <h2 style="color: #45a049;">Adicionar Alimento:</h2>
+        <form id="addAlimentoForm">
+            <input type="text" id="name" placeholder="Nome">
+            <input type="text" id="caloria" placeholder="Caloria">
+            <input type="text" id="descricao" placeholder="Descrição">
+            <input type="file" id="img" accept="image/*">
+            <button type="submit">Adicionar Alimento</button>
+        </form> 
+    </div>
+    <div class="alimentos-container">
+        <h2 style="color: #45a049; margin-bottom: 5px;">Lista de Alimentos:</h2>
+        <input class="search-bar" type="text" id="searchInput" placeholder="Pesquisar Alimento">
+        <div id="alimentos" class="alimentos-list"></div>
+    </div>
+    
+
+    <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSyDEvCcHUMbqPLudjaHDgX4YyspqHtxd63g",
+            authDomain: "eatwell-6c0d8.firebaseapp.com",
+            projectId: "eatwell-6c0d8",
+            storageBucket: "eatwell-6c0d8.appspot.com",
+            messagingSenderId: "255969282670",
+            appId: "1:255969282670:web:333f2a4fe12645cb17f47f",
+            measurementId: "G-EJ30T0ETE3"
+        };
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.firestore();
+
+        var alimentosDiv = document.getElementById('alimentos');
+        var addAlimentoForm = document.getElementById('addAlimentoForm');
+
+        db.collection("alimentos").onSnapshot(function(querySnapshot) {
+            alimentosDiv.innerHTML = '';
+            querySnapshot.forEach(function(doc) {
+                var alimento = doc.data();
+                var alimentoDiv = document.createElement('div');
+                alimentoDiv.innerHTML = `
+                    <div class="alimento-img-container">
+                        <img class="alimento-img" src="${alimento.img}" alt="${alimento.name}">
+                    </div>
+                    <h2>${alimento.name}</h2>
+                    <p>Calorias: ${alimento.caloria}</p>
+                    <p>Descrição: ${alimento.descricao}</p>
+                    <div class="button-container">
+                        <button class="delete-btn" onclick="confirmDelete('${doc.id}', '${alimento.name}')">Excluir</button>
+                        <button class="edit-btn" onclick="editAlimento('${doc.id}')">Editar</button>
+                    </div>
+                    `;
+                alimentosDiv.appendChild(alimentoDiv);
+            });
+        });
+
+        function confirmDelete(id, name) {
+            var confirmDelete = confirm(`Tem certeza que deseja excluir o alimento '${name}'?`);
+            if (confirmDelete) {
+                deleteAlimento(id);
+            }
+        }
+
+        addAlimentoForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        var name = addAlimentoForm.name.value;
+        var caloria = addAlimentoForm.caloria.value;
+        var descricao = addAlimentoForm.descricao.value;
+        var imgFile = addAlimentoForm.img.files[0];
+
+        if (name && descricao && caloria && imgFile) {
+            var storageRef = firebase.storage().ref('imagens/' + imgFile.name);
+            var uploadTask = storageRef.put(imgFile);
+
+            uploadTask.on('state_changed', 
+                function(snapshot) {
+                    // Monitora o progresso do upload, se necessário
+                }, 
+                function(error) {
+                    // Trata qualquer erro que ocorra durante o upload
+                    console.error('Erro ao fazer upload:', error);
+                }, 
+                function() {
+                    // Depois que o upload for concluído, obtém a URL de download
+                    uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
+                        // Adiciona um novo alimento ao Firestore com a URL da imagem
+                        db.collection("alimentos").add({
+                            name: name,
+                            caloria: caloria,
+                            descricao: descricao,
+                            img: downloadURL
+                        }).then(function() {
+                            console.log('Alimento adicionado com sucesso!');
+                            addAlimentoForm.reset();
+                        }).catch(function(error) {
+                            console.error('Erro ao adicionar alimento:', error);
+                        });
+                    });
+                }
+            );
+        } else {
+            alert('Por favor, preencha todos os campos.');
+        }
+    });
+
+        function deleteAlimento(id) {
+            db.collection("alimentos").doc(id).delete();
+        }
+
+        function editAlimento(id) {
+        var alimento = db.collection("alimentos").doc(id);
+        var newName = prompt("Novo nome");
+        var newCaloria = prompt("Nova caloria");
+        var newDescricao = prompt("Nova descrição");
+        var newImg = prompt("Nova imagem URL");
+
+        if (newName && newCaloria && newDescricao && newImg) {
+            alimento.update({
+                name: newName,
+                caloria: newCaloria,
+                descricao: newDescricao,
+                img: newImg
+            });
+        } else {
+            alert('Preencha todos os campos para editar o alimento.');
+        }
+    }
+    var searchInput = document.getElementById('searchInput');
+        var alimentosDiv = document.getElementById('alimentos');
+
+        searchInput.addEventListener('input', function() {
+            var searchTerm = searchInput.value.toLowerCase();
+            db.collection("alimentos").get().then(function(querySnapshot) {
+                alimentosDiv.innerHTML = '';
+                querySnapshot.forEach(function(doc) {
+                    var alimento = doc.data();
+                    if (alimento.name.toLowerCase().includes(searchTerm)) {
+                        var alimentoDiv = document.createElement('div');
+                        alimentoDiv.innerHTML = `
+                            <h2>${alimento.name}</h2>
+                            <p>Calorias: ${alimento.caloria}</p>
+                            <p>Descrição: ${alimento.descricao}</p>
+                            <img src="${alimento.img}" alt="${alimento.name}">
+                            <button class="delete-btn" onclick="confirmDelete('${doc.id}', '${alimento.name}')">Excluir</button>
+                            <button class="edit-btn" onclick="editAlimento('${doc.id}')">Editar</button>
+                        `;
+                        alimentosDiv.appendChild(alimentoDiv);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
