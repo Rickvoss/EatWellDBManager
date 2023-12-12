@@ -81,7 +81,7 @@
         var imgFile = addAlimentoForm.img.files[0];
 
         if (name && descricao && caloria && imgFile) {
-            var storageRef = firebase.storage().ref('imagens/' + imgFile.name);
+            var storageRef = firebase.storage().ref('Alimentos/' + imgFile.name);
             var uploadTask = storageRef.put(imgFile);
 
             uploadTask.on('state_changed', 
@@ -99,9 +99,11 @@
                             img: downloadURL
                         }).then(function() {
                             console.log('Alimento adicionado com sucesso!');
+                            alert("Alimento adicionado com sucesso!");
                             addAlimentoForm.reset();
                         }).catch(function(error) {
                             console.error('Erro ao adicionar alimento:', error);
+                            alert("Erro ao adicionar alimento!");
                         });
                     });
                 }
@@ -117,11 +119,11 @@
         function changeImage(id) {
             var input = document.createElement('input');
             input.type = 'file';
-            input.accept = 'image/*';
+            input.accept = 'Alimentos/*';
             input.onchange = function(event) {
                 var file = event.target.files[0];
                 if (file) {
-                var storageRef = firebase.storage().ref('imagens/' + file.name);
+                var storageRef = firebase.storage().ref('Alimentos/' + file.name);
                 var uploadTask = storageRef.put(file);
 
                 uploadTask.on(
