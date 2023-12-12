@@ -85,16 +85,12 @@
 
             uploadTask.on('state_changed', 
                 function(snapshot) {
-                    // Monitora o progresso do upload, se necessário
                 }, 
                 function(error) {
-                    // Trata qualquer erro que ocorra durante o upload
                     console.error('Erro ao fazer upload:', error);
                 }, 
                 function() {
-                    // Depois que o upload for concluído, obtém a URL de download
                     uploadTask.snapshot.ref.getDownloadURL().then(function(downloadURL) {
-                        // Adiciona um novo alimento ao Firestore com a URL da imagem
                         db.collection("alimentos").add({
                             name: name,
                             caloria: caloria,
